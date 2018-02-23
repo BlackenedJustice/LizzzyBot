@@ -5,7 +5,6 @@ from telebot import types
 
 bot = telebot.TeleBot(config.token)
 
-
 @bot.message_handler(commands=['start'])
 def start_cmd(message):
     bot.send_message(message.chat.id, '''Привет! Меня зовут Лиза, и меня похители! Я не знаю, где нахожусь! 
