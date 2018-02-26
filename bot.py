@@ -34,17 +34,17 @@ def get_token(message):
         users[message.chat.id] = players.Admin(message.chat.id)
         saver.save_users(users)
         bot.send_message(message.chat.id, "Вы успешно повышены до администратора!")
-        set_name_cmd()
+        set_name_cmd(message)
     elif players.verify_token(message.text, 'kp'):
         users[message.chat.id] = players.KP(message.chat.id)
         saver.save_users(users)
         bot.send_message(message.chat.id, "Вы успешно повышены до КПшника!")
-        set_name_cmd()
+        set_name_cmd(message)
     elif players.verify_token(message.text, 'super'):
         users[message.chat.id] = players.Admin(message.chat.id, is_super=True)
         saver.save_users(users)
         bot.send_message(message.chat.id, "Вы теперь мой царь и бог!")
-        set_name_cmd()
+        set_name_cmd(message)
     else:
         bot.send_message(message.chat.id, config.token_error)
 
