@@ -8,7 +8,6 @@ from telebot import types
 
 bot = telebot.TeleBot(config.token)
 users = {}
-is_waiting_for_username = False
 
 
 @bot.message_handler(commands=['start'])
@@ -143,33 +142,31 @@ def delete_user_cmd(message):
                     tmp = ' (super) '
                 markup.add(types.KeyboardButton(u.name + ' - ' + tmp + u.get_type() + ' ChatID: ' + str(u.chatID)))
             bot.send_message(id, 'Выберите пользователя для удаления:', reply_markup=markup)
-            global is_waiting_for_username
-            is_waiting_for_username = True
+            bot.register_next_step_handler(message, del_user)
         else:
             bot.send_message(id, config.permission_error)
     else:
         bot.send_message(id, config.registration_error)
 
 
+def del_user(message):
+    words = message.text.split(' ')
+    i = 0
+    if words[0] == 'NOPE':
+        return
+    while words[i] != 'ChatID:':
+        i += 1
+    if int(words[i + 1]) >= 0:
+        users.pop(int(words[i + 1]), -1)
+        bot.send_message(id, 'Пользователь успешно удален!')
+        logger.log_text('Successful', 'Delete')
+        saver.save_users(users)
+
+
 @bot.message_handler(content_types=["text"])
 def text_handler(message):
     id = message.chat.id
-    global is_waiting_for_username
-    if is_waiting_for_username:
-        words = message.text.split(' ')
-        i = 0
-        if words[0] == 'NOPE':
-            return
-        while words[i] != 'ChatID:':
-            i += 1
-        if int(words[i + 1]) >= 0:
-            users.pop(int(words[i + 1]), -1)
-            bot.send_message(id, 'Пользователь успешно удален!')
-            logger.log_text('Successful', 'Delete')
-            saver.save_users(users)
-        is_waiting_for_username = False
-    else:
-        bot.send_message(id, config.unknown_command_error)
+    bot.send_message(id, config.unknown_command_error)
 
 
 def get_user_name(chat_id):
