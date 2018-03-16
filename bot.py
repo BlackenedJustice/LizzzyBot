@@ -12,9 +12,8 @@ users = {}
 
 @bot.message_handler(commands=['start'])
 def start_cmd(message):
-    bot.send_message(message.chat.id, '''Привет! Меня зовут Лиза, и меня похители! Я не знаю, где нахожусь! 
-Вокруг только голые, облезлые стены и больше ничего... 
-Я нашла телефон здесь, в контактах только твой номер. Пожалуйста! Помоги!''')
+    bot.send_message(message.chat.id, '''Привет! Это Лиза. Я вижу, ты решил помочь мне с квестом. Что ж, давай начнём! 
+    Я буду присылать тебе задания. Решай их - получишь новые. Удачи!''')
     logger.log_event(message.chat.id, 'Start called', get_user_name(message.chat.id))
 
 
