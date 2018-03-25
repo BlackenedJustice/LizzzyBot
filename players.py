@@ -11,6 +11,7 @@ class Player:
         self.chatID = chat_id
         self.name = name
         self.__type = type_
+        self.is_running = False
 
     def get_type(self):
         return self.__type

@@ -2,6 +2,7 @@ import config
 import saver
 import players
 import logger
+import online
 import telebot
 from telebot import types
 
@@ -12,8 +13,14 @@ users = {}
 
 @bot.message_handler(commands=['start'])
 def start_cmd(message):
-    bot.send_message(message.chat.id, '''Привет! Это Лиза. Я вижу, ты решил помочь мне с квестом. Что ж, давай начнём! 
-    Я буду присылать тебе задания. Решай их - получишь новые. Удачи!''')
+    user = users.get(message.chat.id)
+    if user is None or not user.is_running:
+        bot.send_message(message.chat.id, '''Привет! Это Лиза. Я вижу, ты решил помочь мне с квестом. Что ж, давай начнём! 
+        Я буду присылать тебе задания. Решай их - получишь новые. Удачи!
+        Но сначала, давай познакомимся! Как тебя зовут?''')
+        bot.register_next_step_handler(message, set_name)
+    else:
+        bot.send_message(message.chat.id, 'Мы уже познакомились! Продолжай помогать мне:)')
     logger.log_event(message.chat.id, 'Start called', get_user_name(message.chat.id))
 
 
@@ -123,8 +130,13 @@ def set_name(message):
             bot.send_message(id, 'Приятно познакомиться, ' + message.text)
         else:
             bot.send_message(id, config.set_name_error)
+            bot.register_next_step_handler(message, set_name)
     else:
-        bot.send_message(id, config.registration_text)
+        users[id] = players.User(id)
+        users[id].name = message.text
+        users[id].is_running = True
+        saver.save_users(users)
+        bot.send_message(id, 'Приятно познакомиться, ' + message.text)
 
 
 @bot.message_handler(commands=['deluser'])
