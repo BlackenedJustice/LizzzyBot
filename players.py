@@ -3,7 +3,9 @@ import random
 
 adminTokens = []
 kpTokens = []
-superTokens = []
+superTokens = ['aaa']
+
+users = {}
 
 
 class Player:
@@ -32,9 +34,12 @@ class Admin(Player):
 
 
 class User(Player):
-    def __init__(self, chat_id, name='user', type_='user'):
+    def __init__(self, chat_id, online_task=0, name='user', type_='user'):
         Player.__init__(self, chat_id, name, type_)
         self.points = 0
+        self.curr_online_task = 0
+        self.online_start_task = online_task
+        self.online_attempt = 0
 
 
 def gen_token(mode):
