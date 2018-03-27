@@ -39,7 +39,7 @@ class User(Player):
         self.points = 0
         self.curr_online_task = 0
         self.online_start_task = online_task
-        self.online_attempt = 0
+        self.online_attempt = 3
 
 
 def gen_token(mode):

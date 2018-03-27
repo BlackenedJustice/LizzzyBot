@@ -4,6 +4,7 @@ import telebot
 import time
 import config
 import logger
+import saver
 from bot import bot
 from random import randint
 
@@ -29,33 +30,46 @@ def send_text(user_id, n_from, cnt=1):
 def send_task(message):
     user = players.users.get(message.chat.id)
     bot.send_message(message.chat.id, text.task[user.curr_online_task])
-    bot.register_next_step_handler(message, check_task)
 
 
 def check_task(message):
     user = players.users.get(message.chat.id)
+    func = 'nope'
     if check_task_format(user.curr_online_task):
         if message.text == text.ans[user.curr_online_task]:
-            user.curr_online_task += 1
-            user.curr_online_task %= len(text.task)
+            prev_task = user.curr_online_task
+            reset_user_attempts(user)
             if user.curr_online_task == user.online_start_task:
-                bot.send_message(message.text.id, config.online_task_ending)
-                pass
+                bot.send_message(message.chat.id, config.online_task_ending)
+                bot.send_message(message.chat.id, "Done! Repeat!")
+                func = 'send_task'
+                pass  # Здесь будет переход к оффлайн части квеста
             else:
                 bot.send_message(message.chat.id, config.online_task_accepted)
-                send_text(message.chat, user.curr_online_task)
-                bot.register_next_step_handler(message, send_text)
+                send_text(message.chat.id, prev_task)
+                func = 'send_task'
         else:
             user.online_attempt -= 1
             if user.online_attempt > 0:
                 bot.send_message(message.chat.id, config.online_task_wrong_answer + str(user.online_attempt))
-                bot.register_next_step_handler(message, check_task)
+                func = 'check_task'
             else:
+                prev_task = user.curr_online_task
+                reset_user_attempts(user)
                 bot.send_message(message.chat.id, config.online_task_end_of_attempts)
-                bot.register_next_step_handler(message, send_task)
+                send_text(message.chat.id, prev_task)
+                func = 'send_task'
+        saver.save_users(players.users)
     else:
         bot.send_message(message.chat.id, config.online_task_wrong_format)
-        bot.register_next_step_handler(message, check_task)
+        func = 'check_task'
+    return func
+
+
+def reset_user_attempts(user):
+    user.curr_online_task += 1
+    user.curr_online_task %= len(text.task)
+    user.online_attempt = config.online_attempts
 
 
 def check_task_format(num):

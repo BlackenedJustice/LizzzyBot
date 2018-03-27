@@ -137,7 +137,7 @@ def set_name(message):
         saver.save_users(players.users)
         bot.send_message(id, 'Приятно познакомиться, ' + message.text)
         bot.send_message(id, 'Если готовы начать - отправьте любое сообщение!')
-        bot.register_next_step_handler(message, online.start)
+        bot.register_next_step_handler(message, online_start)
 
 
 @bot.message_handler(commands=['deluser'])
@@ -175,9 +175,9 @@ def del_user(message):
         saver.save_users(players.users)
 
 
-@bot.message_handler(commands=["test"])
+@bot.message_handler(commands=["continue"])
 def test(message):
-    bot.register_next_step_handler(message, online.start)
+    send_task(message)
 
 
 @bot.message_handler(content_types=["text"])
@@ -191,6 +191,24 @@ def get_user_name(chat_id):
     if user is not None:
         return user.name
     return ''
+
+
+def online_start(message):
+    online.start(message)
+    bot.register_next_step_handler(message, check_task)
+
+
+def send_task(message):
+    online.send_task(message)
+    bot.register_next_step_handler(message, check_task)
+
+
+def check_task(message):
+    func = online.check_task(message)
+    if func == 'send_task':
+        bot.register_next_step_handler(message, send_task)
+    elif func == 'check_task':
+        bot.register_next_step_handler(message, check_task)
 
 
 if __name__ == '__main__':
