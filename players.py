@@ -4,6 +4,7 @@ import random
 adminTokens = []
 kpTokens = []
 superTokens = ['aaa']
+userTokens = []
 
 users = {}
 
@@ -36,10 +37,19 @@ class Admin(Player):
 class User(Player):
     def __init__(self, chat_id, online_task=0, name='user', type_='user'):
         Player.__init__(self, chat_id, name, type_)
-        self.points = 0
+        self.__points = 0
         self.curr_online_task = 0
         self.online_start_task = online_task
         self.online_attempt = 3
+
+    def add_points(self, n):
+        self.__points += n
+
+    def get_points(self):
+        return self.__points
+
+    def set_points(self, points):
+        self.__points = points
 
 
 def gen_token(mode):
@@ -49,7 +59,7 @@ def gen_token(mode):
     str4 = str1 + str2 + str3
     l = list(str4)
     random.shuffle(l)
-    token = ''.join([random.choice(l) for x in range(12)])
+    token = ''.join([random.choice(l) for x in range(5)])
     if mode == 'admin':
         adminTokens.append(token)
     elif mode == 'kp':
@@ -60,7 +70,11 @@ def gen_token(mode):
 
 
 def verify_token(token, mode):
-    if mode == 'admin':
+    if mode == 'user':
+        if userTokens.count(token) > 0:
+            userTokens.remove(token)
+            return True
+    elif mode == 'admin':
         if adminTokens.count(token) > 0:
             adminTokens.remove(token)
             return True

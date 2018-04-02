@@ -9,15 +9,17 @@ from telebot import types
 
 bot = telebot.TeleBot(config.token)
 
+tmp_id = 0
+
 
 @bot.message_handler(commands=['start'])
 def start_cmd(message):
     user = players.users.get(message.chat.id)
     if user is None or not user.is_running:
-        bot.send_message(message.chat.id, '''Привет! Это Лиза. Я вижу, ты решил помочь мне с квестом. Что ж, давай начнём! 
-Я буду присылать тебе задания. Решай их - получишь новые. Удачи!
-Но сначала, давай познакомимся! Как тебя зовут?''')
-        bot.register_next_step_handler(message, set_name)
+        bot.send_message(message.chat.id, '''Привет! Это Лиза. Я вижу, вы решили помочь мне с квестом. Что ж, давайте начинать! 
+Я буду присылать вам задания. Решайте их - получите новые. Удачи!
+Но сначала, введите код, который был отправлен на почту''')
+        bot.register_next_step_handler(message, get_token)
     else:
         bot.send_message(message.chat.id, 'Мы уже познакомились! Продолжай помогать мне:)')
     logger.log_event(message.chat.id, 'Start called', get_user_name(message.chat.id))
@@ -25,8 +27,16 @@ def start_cmd(message):
 
 @bot.message_handler(commands=['help'])
 def help_cmd(message):
-    bot.send_message(message.chat.id, '''Помоги мне... Пожалуйста...''')
+    bot.send_message(message.chat.id, ''''Вы можете отправить сообщение организатору квеста, напишите и я передам его.
+После отправки сообщения квест продолжится, а через некоторое время к вам придет ответ''')
+    bot.register_next_step_handler(message, help_user)
     logger.log_event(message.chat.id, 'Help called', get_user_name(message.chat.id))
+
+
+def help_user(message):
+    bot.send_message(config.creatorID, message.text)
+    bot.send_message(config.creatorID, 'ID: ' + str(message.chat.id))
+    cont(message)
 
 
 @bot.message_handler(commands=['promote'])
@@ -37,7 +47,10 @@ def promote_cmd(message):
 
 
 def get_token(message):
-    if players.verify_token(message.text, 'admin'):
+    if players.verify_token(message.text, 'user'):
+        bot.send_message(message.chat.id, 'Отлично! Теперь давайте знакомиться, скажите название вашей команды')
+        bot.register_next_step_handler(message, set_name)
+    elif players.verify_token(message.text, 'admin'):
         players.users[message.chat.id] = players.Admin(message.chat.id)
         saver.save_users(players.users)
         bot.send_message(message.chat.id, "Вы успешно повышены до администратора!")
@@ -176,8 +189,28 @@ def del_user(message):
 
 
 @bot.message_handler(commands=["continue"])
-def test(message):
+def cont(message):
     send_task(message)
+
+
+@bot.message_handler(commands=['reply'])
+def reply_cmd(message):
+    if message.chat.id != config.creatorID:
+        return
+    bot.send_message(message.chat.id, "Send id to reply")
+    bot.register_next_step_handler(message, reply_id)
+
+
+def reply_id(message):
+    global tmp_id
+    tmp_id = message.text
+    bot.send_message(message.chat.id, "Enter message")
+    bot.register_next_step_handler(message, reply_text)
+
+
+def reply_text(message):
+    bot.send_message(tmp_id, message.text)
+    bot.send_message(message.chat.id, "Successful!")
 
 
 @bot.message_handler(content_types=["text"])
