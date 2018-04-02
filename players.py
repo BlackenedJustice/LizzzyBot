@@ -4,7 +4,7 @@ import random
 adminTokens = []
 kpTokens = []
 superTokens = ['aaa']
-userTokens = []
+userTokens = ['ccc']
 
 users = {}
 
@@ -41,6 +41,8 @@ class User(Player):
         self.curr_online_task = 0
         self.online_start_task = online_task
         self.online_attempt = 3
+        self.time_start = 0
+        self.curr_offline_task = 0
 
     def add_points(self, n):
         self.__points += n

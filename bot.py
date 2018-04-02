@@ -10,6 +10,7 @@ from telebot import types
 bot = telebot.TeleBot(config.token)
 
 tmp_id = 0
+mode = ''
 
 
 @bot.message_handler(commands=['start'])
@@ -213,9 +214,43 @@ def reply_text(message):
     bot.send_message(message.chat.id, "Successful!")
 
 
+@bot.message_handler(commands=['switch'])
+def sw_cmd(message):
+    if message.chat.id != config.creatorID:
+        return
+    global mode
+    if mode == 'online':
+        mode = 'offline'
+    else:
+        mode = 'online'
+    bot.send_message(message.chat.id, 'Successful!')
+    saver.save_mode(mode)
+
+
+@bot.message_handler(commands=['showusers'])
+def show_users_cmd(message):
+    id = message.chat.id
+    user = players.users.get(id)
+    if user is not None:
+        if user.get_type() == 'admin':
+            text = 'Users:\n'
+            for u in players.users.values():
+                if u.get_type() == 'user':
+                    text += u.name
+                    text += ' - online: '
+                    text += u.curr_online_task
+                    text += '; offline: '
+                    text += u.curr_offline_task
+                    text += '; POINTS = '
+                    text += u.get_points()
+                    text += '\n'
+            bot.send_message(id, text)
+
+
 @bot.message_handler(content_types=["text"])
 def text_handler(message):
     id = message.chat.id
+    print(mode)
     bot.send_message(id, config.unknown_command_error)
 
 
@@ -232,8 +267,11 @@ def online_start(message):
 
 
 def send_task(message):
-    online.send_task(message)
-    bot.register_next_step_handler(message, check_task)
+    if mode == 'online':
+        online.send_task(message)
+        bot.register_next_step_handler(message, check_task)
+    else:
+        pass  # Оффлайн часть
 
 
 def check_task(message):
@@ -245,5 +283,6 @@ def check_task(message):
 
 
 if __name__ == '__main__':
+    mode = saver.load_mode()
     players.users = saver.load_users()
     bot.polling(none_stop=True)

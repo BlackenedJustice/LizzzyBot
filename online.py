@@ -29,7 +29,15 @@ def send_text(user_id, n_from, cnt=1):
 
 def send_task(message):
     user = players.users.get(message.chat.id)
-    bot.send_message(message.chat.id, text.task[user.curr_online_task])
+    num = user.curr_online_task
+    if text.t_format[num] == 'txt':
+        bot.send_message(message.chat.id, text.task[num])
+    elif text.t_format[num] == 'pic':
+        photo = open("pics/" + text.pics[0], 'rb')
+        bot.send_photo(message.chat.id, photo, caption=text.task[num])
+    elif text.t_format[num] == 'audio':
+        audio = open('music/' + text.audios[0], 'rb')
+        bot.send_audio(message.chat.id, audio, caption=text.task[num])
 
 
 def check_task(message):

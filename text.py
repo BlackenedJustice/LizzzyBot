@@ -1,6 +1,14 @@
-task = ['''task1''',
-        '''task2''',
-        '''task3''']
+task = ['''Ассоциации''',
+        '''Музыка''',
+        '''Раз-кол''']
+
+t_format = ['pic',
+            'audio',
+            'txt']
+
+pics = ['online_raz.png']
+
+audios = []
 
 ans = ['ans1',
        'ans2',
