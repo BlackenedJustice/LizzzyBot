@@ -238,13 +238,18 @@ def show_users_cmd(message):
                 if u.get_type() == 'user':
                     text += u.name
                     text += ' - online: '
-                    text += u.curr_online_task
+                    text += str(u.curr_online_task)
                     text += '; offline: '
-                    text += u.curr_offline_task
+                    text += str(u.curr_offline_task)
                     text += '; POINTS = '
-                    text += u.get_points()
+                    text += str(u.get_points())
                     text += '\n'
             bot.send_message(id, text)
+
+
+@bot.message_handler(content_types=['audio'])
+def foo(message):
+    print(message.audio.file_id)
 
 
 @bot.message_handler(content_types=["text"])
@@ -275,6 +280,9 @@ def send_task(message):
 
 
 def check_task(message):
+    if message.text == '/help':
+        help_cmd(message)
+        return
     func = online.check_task(message)
     if func == 'send_task':
         bot.register_next_step_handler(message, send_task)

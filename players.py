@@ -43,6 +43,7 @@ class User(Player):
         self.online_attempt = 3
         self.time_start = 0
         self.curr_offline_task = 0
+        self.other = []
 
     def add_points(self, n):
         self.__points += n

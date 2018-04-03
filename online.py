@@ -22,6 +22,8 @@ def start(message):
 
 
 def send_text(user_id, n_from, cnt=1):
+    if n_from >= len(text.messages):
+        return
     for i in range(cnt):
         bot.send_message(user_id, text.messages[n_from + i])
         time.sleep(randint(1, 3))
@@ -33,20 +35,19 @@ def send_task(message):
     if text.t_format[num] == 'txt':
         bot.send_message(message.chat.id, text.task[num])
     elif text.t_format[num] == 'pic':
-        photo = open("pics/" + text.pics[0], 'rb')
-        bot.send_photo(message.chat.id, photo, caption=text.task[num])
+        bot.send_photo(message.chat.id, text.pic_id, caption=text.task[num])
     elif text.t_format[num] == 'audio':
-        audio = open('music/' + text.audios[0], 'rb')
-        bot.send_audio(message.chat.id, audio, caption=text.task[num])
+        bot.send_audio(message.chat.id, text.audio_id, caption=text.task[num])
 
 
 def check_task(message):
     user = players.users.get(message.chat.id)
     func = 'nope'
-    if check_task_format(user.curr_online_task):
-        if message.text == text.ans[user.curr_online_task]:
+    if check_task_format(user.curr_online_task, message.text):
+        if message.text.lower() == text.ans[user.curr_online_task]:
             prev_task = user.curr_online_task
             reset_user_attempts(user)
+            user.add_points(config.points_for_task)
             if user.curr_online_task == user.online_start_task:
                 bot.send_message(message.chat.id, config.online_task_ending)
                 bot.send_message(message.chat.id, "Done! Repeat!")
@@ -80,5 +81,7 @@ def reset_user_attempts(user):
     user.online_attempt = config.online_attempts
 
 
-def check_task_format(num):
-    return True
+def check_task_format(num, txt):
+    a = txt.split(' ')
+    b = text.ans[num].split(' ')
+    return len(a) == len(b)
