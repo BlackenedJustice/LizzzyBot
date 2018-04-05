@@ -1,9 +1,13 @@
 import pickle
+import players
+import offtxt
 
 
 def save_users(users):
     file = open('data.sav', 'wb')
     pickle.dump(users, file)
+    pickle.dump(players.number_of_users, file)
+    pickle.dump(offtxt.locker_kp, file)
     file.close()
 
 
@@ -27,6 +31,8 @@ def load_users():
     file = open('data.sav', 'rb')
     try:
         users = pickle.load(file)
+        players.number_of_users = pickle.load(file)
+        offtxt.locker_kp = pickle.load(file)
     except EOFError:
         users = {}
     file.close()

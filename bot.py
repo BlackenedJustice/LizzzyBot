@@ -3,8 +3,10 @@ import saver
 import players
 import logger
 import online
+import offtxt
 import telebot
 from telebot import types
+from random import randint
 
 
 bot = telebot.TeleBot(config.token)
@@ -69,6 +71,8 @@ def get_token(message):
     else:
         logger.log_text('Unsuccessful promotion!', 'Verify_token')
         bot.send_message(message.chat.id, config.token_error)
+        bot.send_message(message.chat.id, 'Попробуйте еще раз')
+        bot.register_next_step_handler(message, get_token)
 
 
 @bot.message_handler(commands=['gentoken'])
@@ -145,7 +149,8 @@ def set_name(message):
             bot.send_message(id, config.set_name_error)
             bot.register_next_step_handler(message, set_name)
     else:
-        players.users[id] = players.User(id)
+        players.users[id] = players.User(id, players.number_of_users)
+        players.number_of_users += 1
         players.users[id].name = message.text
         players.users[id].is_running = True
         saver.save_users(players.users)
@@ -183,7 +188,7 @@ def del_user(message):
     while words[i] != 'ChatID:':
         i += 1
     if int(words[i + 1]) >= 0:
-        players.users.pop(int(words[i + 1]), -1)
+        deleted = players.users.pop(int(words[i + 1]), None)
         bot.send_message(message.chat.id, 'Пользователь успешно удален!')
         logger.log_text('Successful', 'Delete')
         saver.save_users(players.users)
@@ -221,6 +226,12 @@ def sw_cmd(message):
     global mode
     if mode == 'online':
         mode = 'offline'
+        for u in players.users.values():
+            if u.get_type() == 'user':
+                msg = bot.send_message(u.chatID, config.new_video)
+                bot.register_next_step_handler(msg, off_start)
+            else:
+                bot.send_message(u.chatID, 'Квест начался!')
     else:
         mode = 'online'
     bot.send_message(message.chat.id, 'Successful!')
@@ -237,10 +248,12 @@ def show_users_cmd(message):
             for u in players.users.values():
                 if u.get_type() == 'user':
                     text += u.name
+                    text += ' - id: '
+                    text += str(u.uid)
                     text += ' - online: '
                     text += str(u.curr_online_task)
                     text += '; offline: '
-                    text += str(u.curr_offline_task)
+                    text += str(u.curr_off_task)
                     text += '; POINTS = '
                     text += str(u.get_points())
                     text += '\n'
@@ -290,7 +303,290 @@ def check_task(message):
         bot.register_next_step_handler(message, check_task)
 
 
+def off_start(message):
+    id = message.chat.id
+    user = players.users.get(id)
+    if user is None:
+        bot.send_message(id, config.unknown_error)
+        return
+    bot.send_message(id, config.offline_geophotos_text)
+    bot.send_photo(id, offtxt.geophotos_id[user.uid])
+    bot.register_next_step_handler(message, check_start)
+
+
+def check_start(message):
+    id = message.chat.id
+    user = players.users.get(id)
+    if user is None:
+        bot.send_message(id, config.unknown_error)
+        return
+    l = message.text.split(' ')
+    if len(l) > 1:
+        bot.send_message(id, config.offline_too_much_words_in_code_error)
+        bot.register_next_step_handler(message, check_start)
+        return
+    code = offtxt.geophotos_codes[user.uid]
+    if len(l[0]) != len(code):
+        bot.send_message(id, config.offline_mismatch_len_code_error)
+        bot.register_next_step_handler(message, check_start)
+        return
+
+    if message.text == code:
+        bot.send_message(id, config.offline_accepted_geophotos)
+        book_code(message)
+    else:
+        bot.send_message(id, config.offline_wrong_code_error)
+        bot.register_next_step_handler(message, check_start)
+
+
+def book_code(message):
+    id = message.chat.id
+    user = players.users.get(id)
+    if user is None:
+        bot.send_message(id, config.unknown_error)
+        return
+    task = offtxt.books_names[user.uid]
+    bot.send_message(id, config.offline_books_text1 + task + config.offline_books_text2)
+    bot.register_next_step_handler(message, check_books)
+
+
+def check_books(message):
+    id = message.chat.id
+    user = players.users.get(id)
+    if user is None:
+        bot.send_message(id, config.unknown_error)
+        return
+    l = message.text.split(' ')
+    if len(l) > 1:
+        bot.send_message(id, config.offline_too_much_words_in_code_error)
+        bot.register_next_step_handler(message, check_books)
+        return
+    ans = offtxt.books_words[user.uid]
+    if len(l[0]) != len(ans):
+        bot.send_message(id, config.offline_mismatch_len_code_error)
+        bot.register_next_step_handler(message, check_books)
+        return
+
+    if message.text.lower() == ans:
+        bot.send_message(id, config.offline_accepted_books)
+        anti_photo(message)
+    else:
+        bot.send_message(id, config.offline_wrong_code_error)
+        bot.register_next_step_handler(message, check_books)
+
+
+def anti_photo(message):
+    id = message.chat.id
+    user = players.users.get(id)
+    if user is None:
+        bot.send_message(id, config.unknown_error)
+        return
+    a = offtxt.photocross_tasks[user.uid]
+    bot.send_message(id, config.offline_photocross_text)
+    for i in range(len(a)):
+        bot.send_photo(id, offtxt.photocross_id[i])
+    bot.register_next_step_handler(message, check_photos)
+
+
+def check_photos(message):
+    id = message.chat.id
+    user = players.users.get(id)
+    if user is None:
+        bot.send_message(id, config.unknown_error)
+        return
+    ans = offtxt.photocross_code
+    a = ans.split(' ')
+    l = message.text.split(' ')
+    if len(l) > len(a):
+        bot.send_message(id, config.offline_too_much_words_error)
+        bot.register_next_step_handler(message, check_photos)
+        return
+
+    if message.text.lower() == ans.lower():
+        bot.send_message(id, config.offline_accepted_photocross)
+        code_lock(message)
+    else:
+        bot.send_message(id, config.offline_wrong_answer_error)
+        bot.register_next_step_handler(check_photos)
+
+
+def code_lock(message):
+    id = message.chat.id
+    user = players.users.get(id)
+    if user is None:
+        bot.send_message(id, config.unknown_error)
+        return
+    text = 'Идите '
+    t = ['север', 'к знаниям', ' юг']
+    if len(offtxt.locker_kp) == 0:
+        bot.send_message(id, '<message>')
+    elif offtxt.locker_kp[0].is_free:
+        offtxt.locker_kp[0].take_user(user)
+        text += t[0]
+    elif offtxt.locker_kp[1].is_free:
+        offtxt.locker_kp[1].take_user(user)
+        text += t[1]
+    elif offtxt.locker_kp[2].is_free:
+        offtxt.locker_kp[2].take_user(user)
+        text += t[2]
+    else:
+        i = randint(0, 2)
+        offtxt.locker_kp[i].add_user(user)
+        text += t[i]
+    bot.send_message(id, text)
+    bot.register_next_step_handler(message, traf)
+
+
+def traf(message):
+    id = message.chat.id
+    user = players.users.get(id)
+    if user is None:
+        bot.send_message(id, config.unknown_error)
+        return
+    code = offtxt.traf_codes[user.uid]
+    l = message.text.split(' ')
+    if len(l) > 1:
+        bot.send_message(id, config.offline_too_much_words_in_code_error)
+        bot.register_next_step_handler(message, traf)
+        return
+    if len(l[0]) != len(code):
+        bot.send_message(id, config.offline_mismatch_len_code_error)
+        bot.register_next_step_handler(message, traf)
+        return
+
+    if message.text == code:
+        bot.send_photo(id, offtxt.traf_photo_id, caption='Найдите его...')
+        bot.register_next_step_handler(message, server)
+    else:
+        bot.send_message(id, config.offline_wrong_code_error)
+        bot.register_next_step_handler(message, traf)
+
+
+def server(message):
+    id = message.chat.id
+    user = players.users.get(id)
+    if user is None:
+        bot.send_message(id, config.unknown_error)
+        return
+    code = offtxt.server_codes[user.uid]
+    l = message.text.split(' ')
+    if len(l) > 1:
+        bot.send_message(id, config.offline_too_much_words_in_code_error)
+        bot.register_next_step_handler(message, server)
+        return
+    if len(l[0]) != len(code):
+        bot.send_message(id, config.offline_mismatch_len_code_error)
+        bot.register_next_step_handler(message, server)
+        return
+
+    if message.text == code:
+        bot.send_message(id, 'Осталось уже совсем немного...')
+        tasks(message)
+    else:
+        bot.send_message(id, config.offline_wrong_code_error)
+        bot.register_next_step_handler(message, server)
+
+
+def tasks(message):
+    id = message.chat.id
+    user = players.users.get(id)
+    if user is None:
+        bot.send_message(id, config.unknown_error)
+        return
+    num = user.curr_off_task
+    bot.send_message(id, offtxt.final_tasks[num])
+    bot.register_next_step_handler(message, check_off_tasks)
+
+
+def check_off_tasks(message):
+    id = message.chat.id
+    user = players.users.get(id)
+    if user is None:
+        bot.send_message(id, config.unknown_error)
+        return
+    num = user.curr_off_task
+    l = message.text.split(' ')
+    code = offtxt.final_ans[num]
+    if len(l) > 1:
+        bot.send_message(id, config.offline_too_much_words_in_code_error)
+        bot.register_next_step_handler(message, server)
+        return
+    if len(l[0]) != len(code):
+        bot.send_message(id, config.offline_mismatch_len_code_error)
+        bot.register_next_step_handler(message, server)
+        return
+
+    if message.text == code:
+        user.curr_off_task += 1
+        saver.save_users(players.users)
+        if user.curr_off_task >= config.offline_num_final_tasks:
+            final(message)
+        else:
+            bot.send_message(id, 'Верный ответ!')
+            tasks(message)
+    else:
+        bot.send_message(id, config.offline_wrong_code_error)
+        bot.register_next_step_handler(check_off_tasks)
+
+
+def final(message):
+    id = message.chat.id
+    user = players.users.get(id)
+    if user is None:
+        bot.send_message(id, config.unknown_error)
+        return
+    bot.send_message(id, config.offline_final_txt)
+    bot.register_next_step_handler(message, check_final)
+
+
+def check_final(message):
+    id = message.chat.id
+    user = players.users.get(id)
+    if user is None:
+        bot.send_message(id, config.unknown_error)
+        return
+    code = offtxt.final_codes[user.uid]
+    l = message.text.split(' ')
+    if len(l) > 1:
+        bot.send_message(id, config.offline_too_much_words_in_code_error)
+        bot.register_next_step_handler(message, check_final)
+        return
+    if len(l[0]) != len(code):
+        bot.send_message(id, config.offline_mismatch_len_code_error)
+        bot.register_next_step_handler(message, check_final)
+        return
+
+    if message.text == code:
+        bot.send_message(id, config.offline_win_text)
+        markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, row_width=2)
+        markup.add(types.KeyboardButton('Да'))
+        markup.add(types.KeyboardButton('Нет'))
+        bot.send_message(id, config.offline_one_more_task, reply_markup=markup)
+        bot.register_next_step_handler(message, final_handler)
+    else:
+        bot.send_message(id, config.offline_wrong_code_error)
+        bot.register_next_step_handler(message, check_final)
+
+
+def final_handler(message):
+    if message.text == 'Да':
+        bot.send_message(message.chat.id, 'Скажите его мне, пожалуйста')
+        bot.register_next_step_handler(message, check_inst)
+    else:
+        bot.send_message(message.chat.id, 'Ну ничего! Я сама найду потом, а пока идите в 646')
+
+
+def check_inst(message):
+        if message.text == offtxt.one_more_code:
+            u = players.users.get(message.chat.id)
+            bot.send_message(config.creatorID, u.name + ' - ' + str(u.chatID))
+            bot.send_message(message.chat.id, 'Супер! Идите в 646, вас там ждет сюрприз)')
+        else:
+            bot.send_message(message.chat.id, 'Нет, к сожалению он не подошел:( Ну ладно, жду вас в 646!')
+
+
 if __name__ == '__main__':
+    #saver.save_users(players.users)
     mode = saver.load_mode()
     players.users = saver.load_users()
     bot.polling(none_stop=True)

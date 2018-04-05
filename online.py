@@ -50,8 +50,6 @@ def check_task(message):
             user.add_points(config.points_for_task)
             if user.curr_online_task == user.online_start_task:
                 bot.send_message(message.chat.id, config.online_task_ending)
-                bot.send_message(message.chat.id, "Done! Repeat!")
-                func = 'send_task'
                 pass  # Здесь будет переход к оффлайн части квеста
             else:
                 bot.send_message(message.chat.id, config.online_task_accepted)

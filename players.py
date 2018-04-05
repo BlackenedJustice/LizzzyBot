@@ -7,6 +7,7 @@ superTokens = ['aaa']
 userTokens = ['ccc']
 
 users = {}
+number_of_users = 0
 
 
 class Player:
@@ -23,6 +24,26 @@ class Player:
 class KP(Player):
     def __init__(self, chat_id, name='kp', type_='kp'):
         Player.__init__(self, chat_id, name, type_)
+        self.is_free = True
+        self.curr_user = None
+        self.waiting = []
+
+    def release(self, num):
+        if self.curr_user is not None:
+            self.curr_user.add_points(num)
+            self.curr_user = None
+        self.is_free = True
+        if len(self.waiting) > 0:
+            u = self.waiting.pop(0)
+            self.curr_user = u
+            self.is_free = False
+
+    def take_user(self, user):
+        self.is_free = False
+        self.curr_user = user
+
+    def add_user(self, user):
+        self.waiting.append(user)
 
 
 class Admin(Player):
@@ -35,14 +56,17 @@ class Admin(Player):
 
 
 class User(Player):
-    def __init__(self, chat_id, online_task=0, name='user', type_='user'):
+    def __init__(self, chat_id, uid,  online_task=0, name='user', type_='user'):
         Player.__init__(self, chat_id, name, type_)
         self.__points = 0
         self.curr_online_task = 0
         self.online_start_task = online_task
         self.online_attempt = 3
-        self.time_start = 0
-        self.curr_offline_task = 0
+
+        self.uid = uid
+
+        self.curr_off_task = 0
+
         self.other = []
 
     def add_points(self, n):
