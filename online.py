@@ -1,12 +1,9 @@
 import players
 import text
-import telebot
-import time
 import config
 import logger
 import saver
 from bot import bot
-from random import randint
 
 
 def start(message):
@@ -26,7 +23,6 @@ def send_text(user_id, n_from, cnt=1):
         return
     for i in range(cnt):
         bot.send_message(user_id, text.messages[n_from + i])
-        time.sleep(randint(1, 3))
 
 
 def send_task(message):

@@ -8,6 +8,7 @@ def save_users(users):
     pickle.dump(users, file)
     pickle.dump(players.number_of_users, file)
     pickle.dump(offtxt.locker_kp, file)
+    pickle.dump(players.userTokens, file)
     file.close()
 
 
@@ -33,6 +34,7 @@ def load_users():
         users = pickle.load(file)
         players.number_of_users = pickle.load(file)
         offtxt.locker_kp = pickle.load(file)
+        players.userTokens = pickle.load(file)
     except EOFError:
         users = {}
     file.close()

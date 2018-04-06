@@ -2,9 +2,22 @@ import random
 
 
 adminTokens = []
-kpTokens = []
-superTokens = ['aaa']
-userTokens = ['ccc']
+kpTokens = ['North',
+            'Middle',
+            'South']
+superTokens = ['asDf45x']
+userTokens = ['YJ5Vz',
+              'ze3se',
+              'BtsKB',
+              '4XKX5',
+              'q30Yn',
+              'Ydro2',
+              '3h9H4',
+              'qZdH7',
+              'tehXd',
+              '4Iwoq',
+              'lT6tE',
+              'ccc']
 
 users = {}
 number_of_users = 0
@@ -66,6 +79,7 @@ class User(Player):
         self.uid = uid
 
         self.curr_off_task = 0
+        self.check_point = 'geo'
 
         self.other = []
 
