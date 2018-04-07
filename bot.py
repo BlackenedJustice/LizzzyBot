@@ -37,6 +37,8 @@ def help_cmd(message):
 
 
 def help_user(message):
+    if message.text is None:
+        return
     bot.send_message(config.creatorID, message.text)
     bot.send_message(config.creatorID, 'ID: ' + str(message.chat.id))
     cont(message)
@@ -197,14 +199,16 @@ def del_user(message):
 
 @bot.message_handler(commands=["continue"])
 def cont(message):
-    if mode == 'online1':  # Исправить!!!
+    id = message.chat.id
+    user = players.users.get(id)
+    if user is None:
+        bot.send_message(id, config.unknown_error)
+        return
+    if mode == 'online':
+        if user.get_points() >= 60:
+            return
         send_task(message)
     else:
-        id = message.chat.id
-        user = players.users.get(id)
-        if user is None:
-            bot.send_message(id, config.unknown_error)
-            return
         p = user.check_point
         if p == config.offline_check_points[0]:
             off_start(message)
@@ -287,6 +291,24 @@ def show_users_cmd(message):
                     text += str(u.get_points())
                     text += '\n'
             bot.send_message(id, text)
+
+
+@bot.message_handler(commands=['release'])
+def rel_cmd(message):
+    id = message.chat.id
+    kp = players.users.get(id)
+    if kp.get_type() != 'kp':
+        return
+    bot.send_message(id, 'Введите количество очков для команды')
+    bot.register_next_step_handler(message, rel_points)
+
+
+def rel_points(message):
+    id = message.chat.id
+    kp = players.users.get(id)
+    for i in range(len(offtxt.locker_kp)):
+        if offtxt.locker_kp[i].chatID == id:
+            offtxt.locker_kp[i].release(int(message.text))
 
 
 @bot.message_handler(content_types=['audio'])
@@ -431,7 +453,7 @@ def anti_photo(message):
     a = offtxt.photocross_tasks[user.uid]
     bot.send_message(id, config.offline_photocross_text)
     for i in range(len(a)):
-        bot.send_photo(id, offtxt.photocross_id[i])
+        bot.send_photo(id, offtxt.photocross_id[a[i]])
     bot.register_next_step_handler(message, check_photos)
 
 
@@ -467,10 +489,18 @@ def code_lock(message):
         bot.send_message(id, config.unknown_error)
         return
     text = 'Идите '
-    t = ['север', 'к знаниям', ' юг']
+    t = ['на север', 'к знаниям', 'на юг']
     if len(offtxt.locker_kp) == 0:
         bot.send_message(id, config.unknown_error)
-    elif offtxt.locker_kp[0].is_free:
+    i = user.uid // 3
+    if i > 2:
+        i = 2
+    if offtxt.locker_kp[i].is_free:
+        offtxt.locker_kp[i].take_user(user)
+    else:
+        offtxt.locker_kp[i].add_user(user)
+    text += t[i]
+    '''elif offtxt.locker_kp[0].is_free:
         offtxt.locker_kp[0].take_user(user)
         text += t[0]
     elif offtxt.locker_kp[1].is_free:
@@ -482,7 +512,7 @@ def code_lock(message):
     else:
         i = randint(0, 2)
         offtxt.locker_kp[i].add_user(user)
-        text += t[i]
+        text += t[i]'''
     bot.send_message(id, text)
     bot.register_next_step_handler(message, traf)
 
@@ -583,7 +613,7 @@ def check_off_tasks(message):
         bot.send_message(id, config.offline_too_much_words_in_code_error)
         bot.register_next_step_handler(message, server)
         return
-    if len(l[0]) != len(code):
+    if len(message.text) != len(code):
         bot.send_message(id, config.offline_mismatch_len_code_error)
         bot.register_next_step_handler(message, server)
         return
@@ -667,11 +697,12 @@ def check_inst(message):
 
 
 def was_help_cmd(message):
-    return message.text == '\help'
+    return message.text == '/help'
 
 
 if __name__ == '__main__':
     #saver.save_users(players.users)
     mode = saver.load_mode()
     players.users = saver.load_users()
+    print(len(offtxt.locker_kp))
     bot.polling(none_stop=True)
